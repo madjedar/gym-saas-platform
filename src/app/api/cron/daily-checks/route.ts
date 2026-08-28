@@ -11,7 +11,15 @@ import { env } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
 
+export async function GET(req: Request) {
+  return handleCron(req);
+}
+
 export async function POST(req: Request) {
+  return handleCron(req);
+}
+
+async function handleCron(req: Request) {
   // 1. Rate Limiting: Max 5 cron executions per minute
   const rateLimit = checkRateLimit(req, { limit: 5, windowMs: 60000, keyPrefix: 'cron-daily' });
   if (!rateLimit.allowed) {
@@ -19,8 +27,8 @@ export async function POST(req: Request) {
   }
 
   try {
-    const authHeader = req.headers.get('authorization') || '';
-    const expectedSecret = env.CRON_SECRET;
+    const authHeader = (req.headers.get('authorization') || '').trim();
+    const expectedSecret = (env.CRON_SECRET || '').trim();
     const expectedHeader = `Bearer ${expectedSecret}`;
 
     if (!safeCompare(authHeader, expectedHeader)) {
