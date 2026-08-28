@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  GYM_OWNER
+  STAFF
+  TRAINER
+  MEMBER
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRING_SOON
+  EXPIRED
+  FROZEN
+}
+
+enum PaymentType {
+  MEMBERSHIP
+  POS
+  ECOMMERCE
+}
+
+enum PaymentMethod {
+  CASH
+  CIB
+  EDAHABIA
+  WALLET
+}
+
+enum AttendanceMethod {
+  QR
+  MANUAL
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+}
+
+enum Courier {
+  YALIDINE
+  GUEPEX
+  PICKUP
+}
+
+enum BookingStatus {
+  BOOKED
+  ATTENDED
+  CANCELLED
+  WAITLISTED
+}
+
+model Gym {
+  id               String         @id @default(cuid())
+  name             String
+  slug             String         @unique
+  logoUrl          String?
+  address          String?
+  phone            String?
+  subscriptionTier String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  users            User[]
+  plans            Plan[]
+  subscriptions    Subscription[]
+  transactions     Transaction[]
+  attendanceLogs   AttendanceLog[]
+  products         Product[]
+  orders           Order[]
+  classes          Class[]
+  workoutRoutines  WorkoutRoutine[]
+}
+
+model User {
+  id            String   @id @default(cuid())
+  gymId         String
+  gym           Gym      @relation(fields: [gymId], references: [id])
+  email         String   @unique
+  passwordHash  String
+  role          Role     @default(MEMBER)
+  firstName     String
+  lastName      String
+  avatarUrl     String?
+  phone         String?
+  pointsBalance Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  subscriptions  Subscription[]
+  transactions   Transaction[]
+  attendanceLogs AttendanceLog[]
+  orders         Order[]
+  classBookings  ClassBooking[]
+
+  trainerClasses Class[] @relation("TrainerClasses")
+
+  @@index([gymId])
+  @@index([email])
+  @@index([role])
+  @@index([gymId, role])
+}
+
+model Plan {
+  id             String   @id @default(cuid())
+  gymId          String
+  gym            Gym      @relation(fields: [gymId], references: [id])
+  name           String
+  durationInDays Int
+  price          Float
+  isActive       Boolean  @default(true)
+
+  subscriptions  Subscription[]
+
+  @@index([gymId])
+}
+
+model Subscription {
+  id            String             @id @default(cuid())
+  userId        String
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId        String
+  plan          Plan               @relation(fields: [planId], references: [id])
+  gymId         String
+  gym           Gym                @relation(fields: [gymId], references: [id])
+  startDate     DateTime
+  endDate       DateTime
+  status        SubscriptionStatus @default(ACTIVE)
+  paymentStatus String             
+
+  @@index([gymId])
+  @@index([userId])
+  @@index([status])
+  @@index([endDate])
+  @@index([gymId, status])
+}
+
+model Transaction {
+  id        String        @id @default(cuid())
+  gymId     String
+  gym       Gym           @relation(fields: [gymId], references: [id])
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Float
+  type      PaymentType
+  method    PaymentMethod
+  createdAt DateTime      @default(now())
+
+  @@index([gymId])
+  @@index([userId])
+}
+
+model AttendanceLog {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gymId        String
+  gym          Gym              @relation(fields: [gymId], references: [id])
+  checkInTime  DateTime         @default(now())
+  checkOutTime DateTime?
+  method       AttendanceMethod
+
+  @@index([gymId])
+  @@index([userId])
+  @@index([checkInTime])
+  @@index([gymId, checkInTime])
+}
+
+model Product {
+  id            String      @id @default(cuid())
+  gymId         String
+  gym           Gym         @relation(fields: [gymId], references: [id])
+  name          String
+  category      String?
+  price         Float
+  stockQuantity Int         @default(0)
+  imageUrl      String?
+  barcode       String?
+
+  orderItems    OrderItem[]
+
+  @@index([gymId])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gymId           String
+  gym             Gym         @relation(fields: [gymId], references: [id])
+  totalAmount     Float
+  status          OrderStatus @default(PENDING)
+  shippingAddress String?
+  trackingNumber  String?
+  courier         Courier?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt @default(now())
+
+  items           OrderItem[]
+
+  @@index([gymId])
+  @@index([userId])
+  @@index([status])
+  @@index([gymId, createdAt])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Float
+
+  @@index([orderId])
+}
+
+model Class {
+  id        String   @id @default(cuid())
+  gymId     String
+  gym       Gym      @relation(fields: [gymId], references: [id])
+  trainerId String
+  trainer   User     @relation("TrainerClasses", fields: [trainerId], references: [id])
+  name      String
+  capacity  Int
+  startTime DateTime
+  endTime   DateTime
+
+  bookings  ClassBooking[]
+
+  @@index([gymId])
+  @@index([startTime])
+}
+
+model ClassBooking {
+  id      String        @id @default(cuid())
+  classId String
+  class   Class         @relation(fields: [classId], references: [id])
+  userId  String
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status  BookingStatus @default(BOOKED)
+
+  @@index([classId])
+  @@index([userId])
+}
+
+model WorkoutRoutine {
+  id      String @id @default(cuid())
+  gymId   String
+  gym     Gym    @relation(fields: [gymId], references: [id])
+  name    String
+  details Json
+
+  @@index([gymId])
+}
