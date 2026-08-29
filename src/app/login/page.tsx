@@ -10,7 +10,8 @@ import Image from "next/image";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const rawCallback = searchParams.get("callbackUrl");
+  const callbackUrl = (!rawCallback || rawCallback.startsWith("/login")) ? "/dashboard" : rawCallback;
   const urlError = searchParams.get("error");
 
   const [email, setEmail] = useState("owner@atlasgym.dz");
@@ -37,8 +38,7 @@ function LoginForm() {
       setError("Identifiants incorrects. Veuillez vérifier l'email et le mot de passe.");
       setLoading(false);
     } else {
-      router.push(callbackUrl);
-      router.refresh();
+      window.location.href = callbackUrl;
     }
   };
 
@@ -58,8 +58,7 @@ function LoginForm() {
       setError("Échec de connexion au compte démo.");
       setLoading(false);
     } else {
-      router.push(callbackUrl);
-      router.refresh();
+      window.location.href = callbackUrl;
     }
   };
 
