@@ -69,6 +69,15 @@ export default withAuth(
       }
     }
 
+    // Root path direct router
+    if (path === "/") {
+      if (token) {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      } else {
+        return NextResponse.redirect(new URL("/login", req.url));
+      }
+    }
+
     // 6. Build response with rate limit tracking & CORS headers
     const response = NextResponse.next();
     response.headers.set("X-RateLimit-Limit", String(limit));
@@ -88,8 +97,9 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         const path = req.nextUrl.pathname;
-        // Public API and web routes do not require pre-existing session
+        // Public API, root redirect, and login routes do not require pre-existing session
         if (
+          path === "/" ||
           path === "/login" ||
           path.startsWith("/api/")
         ) {
@@ -106,6 +116,7 @@ export default withAuth(
 
 export const config = {
   matcher: [
+    "/",
     "/dashboard/:path*",
     "/reception/:path*",
     "/login",
