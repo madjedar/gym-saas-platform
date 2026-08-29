@@ -41,10 +41,17 @@ export default withAuth(
     const token = req.nextauth?.token;
     const role = token?.role;
 
-    // 3. Members cannot access any dashboard or reception routes
-    if (role === "MEMBER" && (path.startsWith("/dashboard") || path.startsWith("/reception"))) {
-      secLog('UNAUTHORIZED_ROLE_ACCESS', { role, path, ip: req.headers.get('x-forwarded-for') || 'unknown' });
-      return NextResponse.redirect(new URL("/login?error=UnauthorizedRole", req.url));
+    // 3. Members cannot access staff/management subroutes or reception scanner
+    if (role === "MEMBER") {
+      if (
+        path.startsWith("/dashboard/members") ||
+        path.startsWith("/dashboard/pos") ||
+        path.startsWith("/dashboard/settings") ||
+        path.startsWith("/reception")
+      ) {
+        secLog('UNAUTHORIZED_ROLE_ACCESS', { role, path, ip: req.headers.get('x-forwarded-for') || 'unknown' });
+        return NextResponse.redirect(new URL("/dashboard?error=UnauthorizedRole", req.url));
+      }
     }
 
     // 4. Settings & Financial configurations: Strictly Owners and Super Admins

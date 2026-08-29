@@ -4,10 +4,62 @@ import Link from "next/link";
 import { Users, CreditCard, TrendingUp, Activity, ArrowUpRight, ShoppingBag, QrCode } from "lucide-react";
 
 import { SAFE_USER_SELECT } from "@/lib/dto";
+import { MemberPass } from "@/components/member-pass";
 
 export default async function DashboardPage() {
   const tenant = await getTenantGym();
   const gymId = tenant?.gym?.id;
+  const user = tenant?.user;
+
+  // Render dedicated Member Space for MEMBER role
+  if (user?.role === "MEMBER") {
+    const memberData = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        subscriptions: {
+          where: { status: "ACTIVE" },
+          include: { plan: true },
+          orderBy: { endDate: "desc" },
+          take: 1
+        },
+        attendanceLogs: {
+          where: { gymId: gymId || undefined },
+          orderBy: { checkInTime: "desc" },
+          take: 5
+        }
+      }
+    });
+
+    const activeSub = memberData?.subscriptions[0];
+    const daysRemaining = activeSub
+      ? Math.max(0, Math.ceil((new Date(activeSub.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : 0;
+
+    return (
+      <MemberPass
+        user={{
+          id: user.id,
+          name: user.name || undefined,
+          email: user.email || undefined,
+        }}
+        gymName={tenant?.gym?.name}
+        subscription={
+          activeSub
+            ? {
+                planName: activeSub.plan.name,
+                endDate: activeSub.endDate.toISOString(),
+                status: activeSub.status,
+                daysRemaining,
+              }
+            : null
+        }
+        attendanceLogs={(memberData?.attendanceLogs || []).map((log) => ({
+          id: log.id,
+          checkInTime: log.checkInTime.toISOString(),
+        }))}
+      />
+    );
+  }
 
   let totalMembers = 0;
   let activeSubscriptions = 0;
