@@ -12,6 +12,7 @@
 
 # Production Build
 /build
+/dist-electron
 
 # Environment Variables & Secrets (CRITICAL: NEVER COMMIT SECRETS)
 .env

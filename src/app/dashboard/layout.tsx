@@ -3,6 +3,8 @@ import Link from "next/link";
 import { LayoutDashboard, Users, ShoppingCart, Settings, Camera } from "lucide-react";
 import { UserNav } from "@/components/user-nav";
 
+import Image from "next/image";
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const tenant = await getTenantGym();
   const gym = tenant?.gym;
@@ -15,9 +17,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Sidebar */}
       <aside className="w-64 border-r border-zinc-800 bg-[#09090b] flex flex-col relative z-10 shrink-0">
         <div className="p-6 border-b border-zinc-800">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-zinc-950 text-sm">
-              G
+          <Link href="/dashboard" className="flex items-center gap-3 group">
+            <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md shadow-emerald-500/20 shrink-0 border border-emerald-500/30">
+              <Image 
+                src="/logo.png" 
+                alt="GymOS Logo" 
+                width={36} 
+                height={36} 
+                className="w-full h-full object-cover" 
+              />
             </div>
             <div>
               <h1 className="text-xl font-black tracking-tighter text-emerald-500 flex items-center leading-none">

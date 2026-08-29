@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CheckCircle2, XCircle, QrCode, Sparkles, ArrowLeft, ShieldCheck, UserCheck, AlertOctagon } from "lucide-react";
 import Link from "next/link";
+import { fetchApi } from "@/lib/api-client";
 
 export default function ScannerPage() {
   const [status, setStatus] = useState<"IDLE" | "GRANTED" | "DENIED">("IDLE");
@@ -13,26 +14,23 @@ export default function ScannerPage() {
   const handleValidateToken = async (token: string) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/access/validate-qr", {
+      const { data, error, status } = await fetchApi<any>("/api/access/validate-qr", {
         method: "POST",
         body: JSON.stringify({ qrToken: token }),
-        headers: { "Content-Type": "application/json" }
       });
 
-      const data = await res.json();
-
-      if (res.ok && data.success) {
+      if (status === 200 && data?.success) {
         setStatus("GRANTED");
         setMessage(data.message || "Accès Autorisé");
         setMemberInfo(data.member);
       } else {
         setStatus("DENIED");
-        setMessage(data.error || "Accès Refusé");
-        setMemberInfo(data.member);
+        setMessage(error || data?.error || "Accès Refusé");
+        setMemberInfo(data?.member);
       }
     } catch (e) {
       setStatus("DENIED");
-      setMessage("Erreur de connexion serveur");
+      setMessage("Erreur inattendue");
     } finally {
       setLoading(false);
       // Reset after 3.5 seconds
@@ -46,9 +44,18 @@ export default function ScannerPage() {
 
   const simulateScan = async (type: "active" | "expired") => {
     try {
-      const res = await fetch(`/api/access/validate-qr?type=${type}`);
-      const data = await res.json();
-      if (data.token) {
+      const { data, error, status } = await fetchApi<any>(`/api/access/validate-qr?type=${type}`);
+      if (status === 429) {
+        setStatus("DENIED");
+        setMessage(error || "Trop de requêtes. Veuillez patienter.");
+        setMemberInfo(null);
+        setTimeout(() => {
+          setStatus("IDLE");
+          setMessage("");
+        }, 3500);
+        return;
+      }
+      if (data?.token) {
         handleValidateToken(data.token);
       }
     } catch (e) {
@@ -98,7 +105,7 @@ export default function ScannerPage() {
             </div>
 
             {/* Laser scan animation */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.8)] animate-[scan_2s_ease-in-out_infinite]" />
+            <div className="absolute top-0 left-0 w-full h-1 bg-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.8)] animate-scan" />
 
             <span className="absolute bottom-4 text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
               Détecteur Actif
@@ -164,15 +171,6 @@ export default function ScannerPage() {
         Vérification cryptographique JWT (60s anti-capture)
       </div>
 
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        @keyframes scan {
-          0% { top: 12%; opacity: 0; }
-          15% { opacity: 1; }
-          85% { opacity: 1; }
-          100% { top: 88%; opacity: 0; }
-        }
-      `}} />
     </div>
   );
 }

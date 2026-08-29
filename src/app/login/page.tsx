@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Dumbbell, ShieldCheck, ArrowRight, Sparkles, Lock, Mail, AlertCircle, CheckCircle2 } from "lucide-react";
 import React, { Suspense } from "react";
+import Image from "next/image";
 
 function LoginForm() {
   const router = useRouter();
@@ -66,8 +67,15 @@ function LoginForm() {
     <div className="w-full max-w-md relative z-10">
       {/* Brand Header */}
       <div className="flex flex-col items-center mb-8">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center shadow-xl shadow-emerald-500/20 mb-3.5 border border-emerald-400/30">
-          <Dumbbell className="w-8 h-8 text-zinc-950" />
+        <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-2xl shadow-emerald-500/25 mb-3.5 border border-emerald-500/30">
+          <Image 
+            src="/logo.png" 
+            alt="GymOS Logo" 
+            width={80} 
+            height={80} 
+            className="w-full h-full object-cover" 
+            priority
+          />
         </div>
         <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-1">
           GYM<span className="text-emerald-500">OS</span>
